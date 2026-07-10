@@ -2,16 +2,49 @@ services:
   postgres:
     image: postgres:18-alpine3.23
     container_name: postgres
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     networks:
       - db_net
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "127.0.0.1:8080:8080"
+    links:
+      - "postgres:db"
+    networks:
+      - db_net
+    depends_on:
+      - postgres
+
+  backend_app:
+    build: .
+    image: backend_app
+    container_name: backend_app
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    networks:
+      - db_net
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/irg
+    depends_on:
+      - postgres
 
 networks:
   db_net:
