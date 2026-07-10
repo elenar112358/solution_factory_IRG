@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:18-alpine3.23
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - db_net
+
+networks:
+  db_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+
+#  docker exec -it postgres psql -U postgres -d sql_base
