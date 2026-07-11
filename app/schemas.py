@@ -54,6 +54,35 @@ class ObligationRequest(BaseModel):
             raise ValueError('Название не должно быть пустым')
         return value
 
-class ObligationQuery(BaseModel):
+
+class ObligationParamsQuery(BaseModel):
     category: Category | None = None
     status: Status | None = None
+
+
+class ObligationDaysQuery(BaseModel):
+    days: int = 7
+
+    @field_validator('days')
+    @classmethod
+    def days_must_be_positive(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError('Количество дней должно быть неотрицательным целым числом')
+
+        return value
+
+
+class ObligationRenewalAlerts(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    title: str = Field(max_length=255)
+    next_payment_date: date
+    amount: Decimal
+    currency: Currency
+
+
+class ObligationUpcomingResponse(BaseModel):
+    obligations: list[ObligationSingleResponse]
+    totals: dict[Currency, Decimal]
+    renewal_alerts: list[ObligationRenewalAlerts]

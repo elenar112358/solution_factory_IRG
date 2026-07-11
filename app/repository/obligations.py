@@ -1,11 +1,11 @@
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
-from datetime import date, datetime
+from datetime import date
 
 from app.enums import Category, Recurrence, Status, Currency
 from app.models import Obligation
-from app.schemas import ObligationQuery
+from app.schemas import ObligationParamsQuery
 
 
 def is_obligation_exist(db: Session, title: str) -> bool:
@@ -42,7 +42,7 @@ def create_obligation(
 
 def get_obligations_by_params(
         db: Session,
-        query_params: ObligationQuery,
+        query_params: ObligationParamsQuery,
 ) -> list[Obligation]:
 
     filters = []
@@ -56,11 +56,6 @@ def get_obligations_by_params(
 
     return query.all()
 
-# Бизнес-правило (lazy expiry). Перед формированием ответа сервис переводит все записи со статусом
-# active и next_payment_date < today в статус expired. Рекуррентные обязательства (recurrence != null) под это
-# правило не попадают: если пользователь не нажал «Оплачено», дата просто устарела, но подписка не
-# прекратилась. Для них статус остаётся active. Обоснуй этот выбор в README.
-
 def set_lazy_expiry(db: Session, expiration_date: date) -> None:
     db.query(Obligation).filter(
         Obligation.next_payment_date < expiration_date,
@@ -71,3 +66,36 @@ def set_lazy_expiry(db: Session, expiration_date: date) -> None:
         synchronize_session=False,
     )
 
+def get_upcoming_obligations(
+        db: Session,
+        start_date: date,
+        end_date: date,
+) -> list[Obligation]:
+
+    query = db.query(Obligation)
+    query = query.filter(
+        Obligation.next_payment_date >= start_date,
+        Obligation.next_payment_date <= end_date,
+        Obligation.status != Status.CANCELLED,
+    )
+    query = query.order_by(Obligation.next_payment_date)
+
+    return query.all()
+
+def get_renewal_alerts(
+        db: Session,
+        start_date: date,
+        end_date: date,
+) -> list[Obligation]:
+
+    query = db.query(Obligation)
+    query = query.filter(
+        Obligation.next_payment_date >= start_date,
+        Obligation.next_payment_date <= end_date,
+        Obligation.status != Status.CANCELLED,
+        Obligation.category == Category.SUBSCRIPTION,
+        Obligation.recurrence.is_not(None)
+    )
+    query = query.order_by(Obligation.next_payment_date)
+
+    return query.all()

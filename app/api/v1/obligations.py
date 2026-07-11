@@ -5,7 +5,9 @@ from app.schemas import (
     ObligationSingleResponse,
     ObligationRequest,
     ObligationResponse,
-    ObligationQuery,
+    ObligationParamsQuery,
+    ObligationDaysQuery,
+    ObligationUpcomingResponse
 )
 
 from app.dependency import get_db
@@ -21,8 +23,15 @@ def add_obligation(
     return obligations_service.add_obligation(db, obligation)
 
 @router.get("/obligations/", response_model=list[ObligationSingleResponse])
-def get_obligation(
-        query_params: ObligationQuery = Depends(),
+def get_obligations(
+        query_params: ObligationParamsQuery = Depends(),
         db: Session = Depends(get_db)
 ):
     return obligations_service.get_obligations(db, query_params)
+
+@router.get("/obligations/upcoming/", response_model=ObligationUpcomingResponse)
+def get_upcoming_obligations(
+        query_days: ObligationDaysQuery = Depends(),
+        db: Session = Depends(get_db)
+):
+    return obligations_service.get_upcoming_obligations(db, query_days)
