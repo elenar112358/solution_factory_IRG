@@ -7,7 +7,7 @@ from app.enums import Category, Recurrence, Status, Currency
 import uuid
 
 
-class ObligationResponse(BaseModel):
+class ObligationSingleResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
@@ -22,8 +22,8 @@ class ObligationResponse(BaseModel):
     updated_at: datetime
 
 
-class ObligationFullResponse(BaseModel):
-    obligation: ObligationResponse
+class ObligationResponse(BaseModel):
+    obligation: ObligationSingleResponse
     warning: str | None = Field(default=None)
 
 
@@ -53,3 +53,7 @@ class ObligationRequest(BaseModel):
         if not value:
             raise ValueError('Название не должно быть пустым')
         return value
+
+class ObligationQuery(BaseModel):
+    category: Category | None = None
+    status: Status | None = None

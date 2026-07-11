@@ -3,11 +3,16 @@ from app.enums import Category, Recurrence, Status, Currency
 
 from sqlalchemy.orm import Session
 
-from app.schemas import ObligationRequest, ObligationResponse, ObligationFullResponse
+from app.schemas import (
+    ObligationRequest,
+    ObligationSingleResponse,
+    ObligationResponse,
+    ObligationQuery,
+)
 from app.repository import obligations as obligations_repository
 
 
-def add_obligation(db: Session, obligation: ObligationRequest) -> ObligationFullResponse:
+def add_obligation(db: Session, obligation: ObligationRequest) -> ObligationResponse:
     today = date.today()
     if obligation.next_payment_date < today:
         status = Status.EXPIRED
@@ -31,9 +36,18 @@ def add_obligation(db: Session, obligation: ObligationRequest) -> ObligationFull
     db.commit()
     db.refresh(created_obligation)
 
-    obligation_response = ObligationResponse.model_validate(created_obligation)
+    obligation_response = ObligationSingleResponse.model_validate(created_obligation)
 
-    return ObligationFullResponse(
+    return ObligationResponse(
         obligation=obligation_response,
         warning=warning,
     )
+
+def get_obligations(db: Session, query_params: ObligationQuery) -> list[ObligationSingleResponse]:
+    today = date.today()
+    obligations_repository.set_lazy_expiry(db, today)
+    db.commit()
+
+    obligations = obligations_repository.get_obligations_by_params(db, query_params)
+
+    return [ObligationSingleResponse.model_validate(obligation) for obligation in obligations]
