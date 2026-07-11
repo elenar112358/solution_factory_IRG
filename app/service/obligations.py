@@ -84,10 +84,7 @@ def get_upcoming_obligations(db: Session, query_days: DaysQuery) -> ObligationUp
         renewal_alerts=[ObligationRenewalAlerts.model_validate(alert) for alert in renewal_alerts]
     )
 
-
-def add_payment(db: Session, obligation_id: UUID) -> PaymentResponse:
-    obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
-
+def check_obligation(obligation: Obligation, obligation_id: UUID) -> None:
     if not obligation:
         raise HTTPException(
             status_code=404,
@@ -99,6 +96,10 @@ def add_payment(db: Session, obligation_id: UUID) -> PaymentResponse:
             status_code=422,
             detail=f"Обязательство с id = '{obligation_id}' не активно"
         )
+
+def add_payment(db: Session, obligation_id: UUID) -> PaymentResponse:
+    obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
+    check_obligation(obligation, obligation_id)
 
     payment = obligations_repository.create_payment(
         db=db,
@@ -135,3 +136,13 @@ def calculate_next_payment_date(obligation: Obligation) -> date:
         return next_payment_date + relativedelta(years=1)
 
     raise ValueError(f"Неизвестный период: {obligation.recurrence}")
+
+def cancel_obligation(db: Session, obligation_id: UUID) -> ObligationSingleResponse:
+    obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
+    check_obligation(obligation, obligation_id)
+    obligations_repository.cancel_obligation(db, obligation.id)
+
+    db.commit()
+    db.refresh(obligation)
+
+    return ObligationSingleResponse.model_validate(obligation)

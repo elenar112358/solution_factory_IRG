@@ -45,3 +45,10 @@ def add_payment(
 ):
     return obligations_service.add_payment(db, id)
 
+@router.patch("/obligations/{id}/cancel", response_model=ObligationSingleResponse)
+def cancel_obligation(
+        id: UUID,
+        db: Session = Depends(get_db)
+):
+    return obligations_service.cancel_obligation(db, id)
+
