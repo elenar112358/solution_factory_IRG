@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.schemas import (
     ObligationSingleResponse,
     ObligationRequest,
     ObligationResponse,
     ObligationParamsQuery,
-    ObligationDaysQuery,
-    ObligationUpcomingResponse
+    DaysQuery,
+    ObligationUpcomingResponse,
+    PaymentResponse,
 )
 
 from app.dependency import get_db
@@ -31,7 +33,15 @@ def get_obligations(
 
 @router.get("/obligations/upcoming/", response_model=ObligationUpcomingResponse)
 def get_upcoming_obligations(
-        query_days: ObligationDaysQuery = Depends(),
+        query_days: DaysQuery = Depends(),
         db: Session = Depends(get_db)
 ):
     return obligations_service.get_upcoming_obligations(db, query_days)
+
+@router.post("/obligations/{id}/pay", response_model=PaymentResponse)
+def add_payment(
+        id: UUID,
+        db: Session = Depends(get_db)
+):
+    return obligations_service.add_payment(db, id)
+

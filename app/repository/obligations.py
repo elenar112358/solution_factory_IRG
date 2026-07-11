@@ -1,11 +1,16 @@
 from decimal import Decimal
-
-from sqlalchemy.orm import Session
+from uuid import UUID
 from datetime import date
 
+from sqlalchemy.orm import Session
+
 from app.enums import Category, Recurrence, Status, Currency
-from app.models import Obligation
+from app.models import Obligation, Payment
 from app.schemas import ObligationParamsQuery
+
+
+class ObligationNotFoundError(Exception):
+    pass
 
 
 def is_obligation_exist(db: Session, title: str) -> bool:
@@ -15,6 +20,11 @@ def is_obligation_exist(db: Session, title: str) -> bool:
     ).first()
 
     return obligation is not None
+
+def get_obligation_by_id(db: Session, id: UUID) -> Obligation | None:
+    return db.query(Obligation).filter(
+        Obligation.id == id,
+    ).first()
 
 def create_obligation(
         db: Session,
@@ -38,6 +48,7 @@ def create_obligation(
     )
     db.add(obligation)
     db.flush()
+
     return obligation
 
 def get_obligations_by_params(
@@ -99,3 +110,40 @@ def get_renewal_alerts(
     query = query.order_by(Obligation.next_payment_date)
 
     return query.all()
+
+def create_payment(
+        db: Session,
+        obligation_id: UUID,
+        amount: Decimal,
+        currency: Currency,
+) -> Payment:
+
+    payment = Payment(
+        obligation_id=obligation_id,
+        amount=amount,
+        currency=currency,
+    )
+
+    db.add(payment)
+    db.flush()
+
+    return payment
+
+def set_new_payment_date(
+        db: Session,
+        obligation_id: UUID,
+        next_payment_date: date
+) -> None:
+    obligation = get_obligation_by_id(db, obligation_id)
+    obligation.next_payment_date = next_payment_date
+    db.flush()
+
+
+def cancel_obligation(
+        db: Session,
+        obligation_id: UUID,
+) -> None:
+
+    obligation = get_obligation_by_id(db, obligation_id)
+    obligation.status = Status.CANCELLED
+    db.flush()

@@ -1,19 +1,25 @@
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 from decimal import Decimal
+from uuid import UUID
 
 from app.enums import Category, Recurrence, Status, Currency
+from app.models import Obligation, Payment
 
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 from app.schemas import (
     ObligationRequest,
     ObligationSingleResponse,
     ObligationResponse,
     ObligationParamsQuery,
-    ObligationDaysQuery,
+    DaysQuery,
     ObligationUpcomingResponse,
     ObligationRenewalAlerts,
+    PaymentResponse,
+    PaymentSingleResponse,
 )
 from app.repository import obligations as obligations_repository
 
@@ -60,7 +66,7 @@ def get_obligations(db: Session, query_params: ObligationParamsQuery) -> list[Ob
     return [ObligationSingleResponse.model_validate(obligation) for obligation in obligations]
 
 
-def get_upcoming_obligations(db: Session, query_days: ObligationDaysQuery) -> ObligationUpcomingResponse:
+def get_upcoming_obligations(db: Session, query_days: DaysQuery) -> ObligationUpcomingResponse:
     today = date.today()
     end_date = today + timedelta(days=query_days.days)
 
@@ -77,3 +83,55 @@ def get_upcoming_obligations(db: Session, query_days: ObligationDaysQuery) -> Ob
         totals=dict(totals),
         renewal_alerts=[ObligationRenewalAlerts.model_validate(alert) for alert in renewal_alerts]
     )
+
+
+def add_payment(db: Session, obligation_id: UUID) -> PaymentResponse:
+    obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
+
+    if not obligation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Обязательство с id = '{obligation_id}' не найдено"
+        )
+
+    if obligation.status != Status.ACTIVE:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Обязательство с id = '{obligation_id}' не активно"
+        )
+
+    payment = obligations_repository.create_payment(
+        db=db,
+        obligation_id=obligation_id,
+        amount=obligation.amount,
+        currency=obligation.currency,
+    )
+
+    if obligation.recurrence is None:
+        obligations_repository.cancel_obligation(db, obligation.id)
+    else:
+        next_payment_date = calculate_next_payment_date(obligation)
+        obligations_repository.set_new_payment_date(db, obligation.id, next_payment_date)
+
+    db.commit()
+    db.refresh(payment)
+    db.refresh(obligation)
+
+    return PaymentResponse(
+        obligation=ObligationSingleResponse.model_validate(obligation),
+        payment=PaymentSingleResponse.model_validate(payment),
+    )
+
+def calculate_next_payment_date(obligation: Obligation) -> date:
+    next_payment_date = obligation.next_payment_date
+
+    if obligation.recurrence == Recurrence.MONTHLY:
+        return next_payment_date + relativedelta(months=1)
+
+    if obligation.recurrence == Recurrence.QUARTERLY:
+        return next_payment_date + relativedelta(months=3)
+
+    if obligation.recurrence == Recurrence.YEARLY:
+        return next_payment_date + relativedelta(years=1)
+
+    raise ValueError(f"Неизвестный период: {obligation.recurrence}")

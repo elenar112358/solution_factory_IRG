@@ -4,13 +4,13 @@ from decimal import Decimal, ROUND_HALF_UP
 from pydantic import BaseModel, Field, field_validator
 
 from app.enums import Category, Recurrence, Status, Currency
-import uuid
+from uuid import UUID
 
 
 class ObligationSingleResponse(BaseModel):
     model_config = {"from_attributes": True}
 
-    id: uuid.UUID
+    id: UUID
     title: str = Field(max_length=255)
     amount: Decimal
     currency: Currency
@@ -60,7 +60,7 @@ class ObligationParamsQuery(BaseModel):
     status: Status | None = None
 
 
-class ObligationDaysQuery(BaseModel):
+class DaysQuery(BaseModel):
     days: int = 7
 
     @field_validator('days')
@@ -75,7 +75,7 @@ class ObligationDaysQuery(BaseModel):
 class ObligationRenewalAlerts(BaseModel):
     model_config = {"from_attributes": True}
 
-    id: uuid.UUID
+    id: UUID
     title: str = Field(max_length=255)
     next_payment_date: date
     amount: Decimal
@@ -86,3 +86,24 @@ class ObligationUpcomingResponse(BaseModel):
     obligations: list[ObligationSingleResponse]
     totals: dict[Currency, Decimal]
     renewal_alerts: list[ObligationRenewalAlerts]
+
+
+class PaymentSingleResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: UUID
+    obligation_id: UUID
+    amount: Decimal
+    currency: Currency
+    paid_at: datetime
+
+
+class PaymentResponse(BaseModel):
+    obligation: ObligationSingleResponse
+    payment: PaymentSingleResponse
+
+
+class PaymentRequest(BaseModel):
+    obligation_id: UUID
+    amount: Decimal
+    currency: Currency
