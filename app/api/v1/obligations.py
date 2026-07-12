@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+# from app.event_manager import broadcaster
 
 from app.schemas import (
     ObligationSingleResponse,
@@ -52,3 +53,16 @@ def cancel_obligation(
 ):
     return obligations_service.cancel_obligation(db, id)
 
+@router.delete("/obligations/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_obligation(
+        id: UUID,
+        db: Session = Depends(get_db)
+) -> None:
+    obligations_service.delete_obligation(db, id)
+
+# @router.get("/events")
+# async def events():
+#     queue = broadcaster.subscribe()
+#     event = await queue.get()
+#
+#     return event

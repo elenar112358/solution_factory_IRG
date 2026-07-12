@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import date
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.enums import Category, Recurrence, Status, Currency
 from app.models import Obligation, Payment
@@ -15,7 +16,7 @@ class ObligationNotFoundError(Exception):
 
 def is_obligation_exist(db: Session, title: str) -> bool:
     obligation = db.query(Obligation).filter(
-        Obligation.title == title,
+        func.lower(Obligation.title) == title.lower(),
         Obligation.status == Status.ACTIVE,
     ).first()
 
@@ -138,7 +139,6 @@ def set_new_payment_date(
     obligation.next_payment_date = next_payment_date
     db.flush()
 
-
 def cancel_obligation(
         db: Session,
         obligation_id: UUID,
@@ -147,3 +147,11 @@ def cancel_obligation(
     obligation = get_obligation_by_id(db, obligation_id)
     obligation.status = Status.CANCELLED
     db.flush()
+
+def delete_obligation(
+        db: Session,
+        obligation_id: UUID,
+) -> None:
+
+    obligation = get_obligation_by_id(db, obligation_id)
+    db.delete(obligation)

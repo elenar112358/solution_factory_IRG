@@ -10,6 +10,8 @@ from app.models import Obligation, Payment
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
+# from app.event_manager import broadcaster
+
 from app.schemas import (
     ObligationRequest,
     ObligationSingleResponse,
@@ -146,3 +148,23 @@ def cancel_obligation(db: Session, obligation_id: UUID) -> ObligationSingleRespo
     db.refresh(obligation)
 
     return ObligationSingleResponse.model_validate(obligation)
+
+def delete_obligation(db: Session, obligation_id: UUID) -> None:
+    obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
+
+    if not obligation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Обязательство с id = '{obligation_id}' не найдено"
+        )
+
+    obligations_repository.delete_obligation(db, obligation_id)
+    db.commit()
+
+    # broadcaster.broadcast(
+    #     {
+    #         "type": "obligation_deleted",
+    #         "id": str(obligation_id),
+    #     }
+    # )
+
