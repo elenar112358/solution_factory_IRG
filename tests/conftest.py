@@ -1,4 +1,5 @@
-from typing import Generator
+from typing import Generator, Any
+from datetime import date, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 from app.database import Base
 from app.dependency import get_db
 from app.main import app
+from app.enums import Category, Recurrence, Status, Currency
 
 TEST_DATABASE_URL = "sqlite://"
 
@@ -45,4 +47,64 @@ def setup_db():
 def db_session() -> Generator[Session, None, None]:
     with TestSessionLocal() as session:
         yield session
+
+@pytest.fixture
+def obligation_request_success() -> dict[str, Any]:
+    payment_date = date.today() + timedelta(days=5)
+
+    obligation_request = {
+        "title": "Subscription_1",
+        "amount": 1000.00,
+        "currency": Currency.RUB.value,
+        "category": Category.SUBSCRIPTION.value,
+        "recurrence": Recurrence.MONTHLY.value,
+        "next_payment_date": payment_date.isoformat(),
+    }
+
+    return obligation_request
+
+@pytest.fixture
+def obligation_request_expired() -> dict[str, Any]:
+    payment_date = date.today() - timedelta(days=2)
+
+    obligation_request = {
+        "title": "Subscription_1",
+        "amount": 1000.00,
+        "currency": Currency.RUB.value,
+        "category": Category.WARRANTY.value,
+        "recurrence": None,
+        "next_payment_date": payment_date.isoformat(),
+    }
+
+    return obligation_request
+
+@pytest.fixture
+def obligation_request_duplicate_1() -> dict[str, Any]:
+    payment_date = date.today() + timedelta(days=2)
+
+    obligation_request = {
+        "title": "Subscription_1",
+        "amount": 1000.00,
+        "currency": Currency.RUB.value,
+        "category": Category.BILL.value,
+        "recurrence": None,
+        "next_payment_date": payment_date.isoformat(),
+    }
+
+    return obligation_request
+
+@pytest.fixture
+def obligation_request_duplicate_2() -> dict[str, Any]:
+    payment_date = date.today() - timedelta(days=2)
+
+    obligation_request = {
+        "title": "subscription_1",
+        "amount": 500.00,
+        "currency": Currency.USD.value,
+        "category": Category.SUBSCRIPTION.value,
+        "recurrence": None,
+        "next_payment_date": payment_date.isoformat(),
+    }
+
+    return obligation_request
 
