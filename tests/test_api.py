@@ -740,6 +740,50 @@ def test_add_payment_yearly(
     assert body["obligation"]["next_payment_date"] == "2029-02-28"
     assert body["obligation"]["status"] == Status.ACTIVE.value
 
+def test_add_payment_not_reccurent(
+        db_session,
+        client,
+        obligation_request_monthly,
+):
+
+    obligation_request_null = obligation_request_monthly.copy()
+    obligation_request_null["recurrence"] = None
+
+    response_1 = client.post(
+        "/api/v1/obligations/",
+        json=obligation_request_null,
+    )
+
+    assert response_1.status_code == 200, response_1.text
+
+    obligation = db_session.query(Obligation).first()
+    id = obligation.id
+    url_text = f"/api/v1/obligations/{str(id)}/pay"
+
+    response = client.post(url_text)
+    assert response.status_code == 200, response.text
+
+    body = response.json()
+    assert "obligation" in body
+    assert "payment" in body
+
+    assert body["obligation"]["title"] == obligation_request_null["title"]
+    assert Decimal(body["obligation"]["amount"]) == Decimal(obligation_request_null["amount"])
+    assert body["obligation"]["currency"] == obligation_request_null["currency"]
+    assert body["obligation"]["category"] == obligation_request_null["category"]
+    assert body["obligation"]["recurrence"] == obligation_request_null["recurrence"]
+    assert body["obligation"]["status"] == Status.CANCELLED.value
+
+    db_session.refresh(obligation)
+    obligation = (
+        db_session.query(Obligation)
+        .filter_by(id=id)
+        .first()
+    )
+
+    assert obligation is not None
+    assert obligation.status == Status.CANCELLED.value
+
 def test_cancel_obligation_success(
         db_session,
         client,

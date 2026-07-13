@@ -18,42 +18,67 @@ from app.service import obligations as obligations_service
 
 router = APIRouter()
 
-@router.post("/obligations/", response_model=ObligationResponse)
+@router.post(
+    "/obligations/",
+    response_model=ObligationResponse,
+    summary="Добавить новое обязательство"
+)
 def add_obligation(
         obligation: ObligationRequest,
         db: Session = Depends(get_db)
 ):
     return obligations_service.add_obligation(db, obligation)
 
-@router.get("/obligations/", response_model=list[ObligationSingleResponse])
+@router.get(
+    "/obligations/",
+    response_model=list[ObligationSingleResponse],
+    summary="Получить список обязательств по параметрам"
+)
 def get_obligations(
         query_params: ObligationParamsQuery = Depends(),
         db: Session = Depends(get_db)
 ):
     return obligations_service.get_obligations(db, query_params)
 
-@router.get("/obligations/upcoming/", response_model=ObligationUpcomingResponse)
+@router.get(
+    "/obligations/upcoming/",
+    response_model=ObligationUpcomingResponse,
+    summary="Получить предстоящие платежи из диапазона [today, today + N days]"
+)
 def get_upcoming_obligations(
         query_days: DaysQuery = Depends(),
         db: Session = Depends(get_db)
 ):
     return obligations_service.get_upcoming_obligations(db, query_days)
 
-@router.post("/obligations/{id}/pay", response_model=PaymentResponse)
+@router.post(
+    "/obligations/{id}/pay",
+    response_model=PaymentResponse,
+    tags=["Платежи"],
+    summary="Оплатить обязательство по id"
+)
 def add_payment(
         id: UUID,
         db: Session = Depends(get_db)
 ):
     return obligations_service.add_payment(db, id)
 
-@router.patch("/obligations/{id}/cancel", response_model=ObligationSingleResponse)
+@router.patch(
+    "/obligations/{id}/cancel",
+    response_model=ObligationSingleResponse,
+    summary="Отменить обязательство по id"
+)
 def cancel_obligation(
         id: UUID,
         db: Session = Depends(get_db)
 ):
     return obligations_service.cancel_obligation(db, id)
 
-@router.delete("/obligations/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/obligations/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Удалить обязательство по id"
+)
 def delete_obligation(
         id: UUID,
         db: Session = Depends(get_db)
