@@ -86,7 +86,20 @@ def get_upcoming_obligations(db: Session, query_days: DaysQuery) -> ObligationUp
         renewal_alerts=[ObligationRenewalAlerts.model_validate(alert) for alert in renewal_alerts]
     )
 
-def check_obligation(obligation: Obligation, obligation_id: UUID) -> None:
+def check_obligation_for_payment(obligation: Obligation, obligation_id: UUID) -> None:
+    if not obligation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Обязательство с id = '{obligation_id}' не найдено"
+        )
+
+    if obligation.status == Status.CANCELLED:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Обязательство с id = '{obligation_id}' уже закрыто"
+        )
+
+def check_obligation_for_cancel(obligation: Obligation, obligation_id: UUID) -> None:
     if not obligation:
         raise HTTPException(
             status_code=404,
@@ -101,7 +114,7 @@ def check_obligation(obligation: Obligation, obligation_id: UUID) -> None:
 
 def add_payment(db: Session, obligation_id: UUID) -> PaymentResponse:
     obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
-    check_obligation(obligation, obligation_id)
+    check_obligation_for_payment(obligation, obligation_id)
 
     payment = obligations_repository.create_payment(
         db=db,
@@ -141,7 +154,7 @@ def calculate_next_payment_date(obligation: Obligation) -> date:
 
 def cancel_obligation(db: Session, obligation_id: UUID) -> ObligationSingleResponse:
     obligation = obligations_repository.get_obligation_by_id(db, obligation_id)
-    check_obligation(obligation, obligation_id)
+    check_obligation_for_cancel(obligation, obligation_id)
     obligations_repository.cancel_obligation(db, obligation.id)
 
     db.commit()

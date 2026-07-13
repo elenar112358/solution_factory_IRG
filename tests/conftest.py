@@ -80,12 +80,12 @@ def obligation_request_expired() -> dict[str, Any]:
 
 @pytest.fixture
 def obligation_request_duplicate_1() -> dict[str, Any]:
-    payment_date = date.today() + timedelta(days=2)
+    payment_date = date.today() + timedelta(days=12)
 
     obligation_request = {
         "title": "Subscription_1",
         "amount": 1000.00,
-        "currency": Currency.RUB.value,
+        "currency": Currency.EUR.value,
         "category": Category.BILL.value,
         "recurrence": None,
         "next_payment_date": payment_date.isoformat(),
@@ -108,3 +108,15 @@ def obligation_request_duplicate_2() -> dict[str, Any]:
 
     return obligation_request
 
+@pytest.fixture
+def obligation_request_monthly() -> dict[str, Any]:
+    obligation_request = {
+        "title": "Subscription_1",
+        "amount": 1000.00,
+        "currency": Currency.RUB.value,
+        "category": Category.SUBSCRIPTION.value,
+        "recurrence": Recurrence.MONTHLY.value,
+        "next_payment_date": "2027-01-31",
+    }
+
+    return obligation_request
