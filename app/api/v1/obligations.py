@@ -107,3 +107,6 @@ async def events():
         event_generator(),
         media_type="text/event-stream",
     )
+
+# для проверки подписаться через
+# curl -N http://localhost:8000/api/v1/events

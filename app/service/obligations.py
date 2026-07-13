@@ -4,8 +4,8 @@ from collections import defaultdict
 from decimal import Decimal
 from uuid import UUID
 
-from app.enums import Category, Recurrence, Status, Currency
-from app.models import Obligation, Payment
+from app.enums import Recurrence, Status
+from app.models import Obligation
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
