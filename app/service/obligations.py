@@ -10,7 +10,7 @@ from app.models import Obligation, Payment
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-# from app.event_manager import broadcaster
+from app.event_manager import broadcaster
 
 from app.schemas import (
     ObligationRequest,
@@ -174,10 +174,8 @@ def delete_obligation(db: Session, obligation_id: UUID) -> None:
     obligations_repository.delete_obligation(db, obligation_id)
     db.commit()
 
-    # broadcaster.broadcast(
-    #     {
-    #         "type": "obligation_deleted",
-    #         "id": str(obligation_id),
-    #     }
-    # )
+    broadcaster.broadcast({
+        "type": "obligation_deleted",
+        "id": str(obligation_id),
+    })
 

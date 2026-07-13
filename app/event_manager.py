@@ -1,22 +1,21 @@
 import asyncio
 
-
-class Broadcaster:
+class EventManager:
     def __init__(self):
-        self._subscribers: list[asyncio.Queue] = []
+        self.subscribers: list[asyncio.Queue] = []
 
     def subscribe(self) -> asyncio.Queue:
         queue = asyncio.Queue()
-        self._subscribers.append(queue)
+        self.subscribers.append(queue)
         return queue
 
-    def unsubscribe(self, queue: asyncio.Queue) -> None:
-        if queue in self._subscribers:
-            self._subscribers.remove(queue)
+    def unsubscribe(self, queue: asyncio.Queue):
+        if queue in self.subscribers:
+            self.subscribers.remove(queue)
 
-    def broadcast(self, event: dict) -> None:
-        for queue in self._subscribers:
+    def broadcast(self, event: dict):
+        for queue in self.subscribers:
             queue.put_nowait(event)
 
 
-broadcaster = Broadcaster()
+broadcaster = EventManager()

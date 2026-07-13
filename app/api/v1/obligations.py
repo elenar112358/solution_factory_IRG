@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
-# from app.event_manager import broadcaster
+from app.event_manager import broadcaster
+import json
 
 from app.schemas import (
     ObligationSingleResponse,
@@ -85,9 +87,23 @@ def delete_obligation(
 ) -> None:
     obligations_service.delete_obligation(db, id)
 
-# @router.get("/events")
-# async def events():
-#     queue = broadcaster.subscribe()
-#     event = await queue.get()
-#
-#     return event
+@router.get("/events", summary="SSE трансляция")
+async def events():
+    queue = broadcaster.subscribe()
+
+    async def event_generator():
+        try:
+            while True:
+                event = await queue.get()
+
+                yield (
+                    f"event: {event['type']}\n"
+                    f"data: {json.dumps(event)}\n\n"
+                )
+        finally:
+            broadcaster.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+    )
